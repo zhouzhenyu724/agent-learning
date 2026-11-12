@@ -33,8 +33,10 @@ def _mock_handler(request: httpx.Request) -> httpx.Response:
 async def main() -> None:
     transport = httpx.MockTransport(_mock_handler)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        python_topic = await fetch_topic(client, "python")
-        backend_topic = await fetch_topic(client, "backend")
+        python_topic, backend_topic = await asyncio.gather(
+          fetch_topic(client, "python"),
+          fetch_topic(client, "backend"),
+        )
         print(python_topic)
         print(backend_topic)
         await fetch_topic(client, "unknown")
