@@ -47,11 +47,9 @@ async def health():
 @app.get("/records", response_model=list[RecordResponse])
 async def get_records(store: Annotated[RecordRepository, Depends(get_repository)], topic: str | None = None):
   records = store.list_all()
-  if topic:
-    for record in records:
-      if record.topic == topic:
-        return [record]
-  return store.list_all()
+  if topic is None:
+    return records
+  return [record for record in records if record.topic == topic]
 
 @app.get("/records/{record_id}", response_model=RecordResponse)
 async def get_record(record_id: int, store: Annotated[RecordRepository, Depends(get_repository)]):
