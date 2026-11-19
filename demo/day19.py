@@ -56,30 +56,30 @@ def require_record(row: sqlite3.Row | None) -> dict:
     return dict(row)
 
 @app.get("/health")
-async def health():
+def health():
     return {"status": "ok"}
 
 @app.get("/records", response_model=list[RecordResponse])
-async def get_records(db: Database, topic: str | None = None):
+def get_records(db: Database, topic: str | None = None):
   rows = db.execute("SELECT id, topic, hours FROM records WHERE (? IS NULL OR topic = ?) ORDER BY id", (topic, topic)).fetchall()
   return [dict(row) for row in rows]
 
 @app.get("/records/{record_id}", response_model=RecordResponse)
-async def get_record(record_id: int, db: Database):
+def get_record(record_id: int, db: Database):
   with db, closing[Cursor](db.execute("SELECT id, topic, hours FROM records WHERE id = ?", (record_id,))) as cursor:
     return require_record(cursor.fetchone())
 
 @app.post("/records", response_model=RecordResponse, status_code=status.HTTP_201_CREATED)
-async def create_record(record: RecordCreate, db: Database):
+def create_record(record: RecordCreate, db: Database):
   with db, closing[Cursor](db.execute("INSERT INTO records (topic, hours) VALUES (?, ?) RETURNING id, topic, hours", (record.topic, record.hours))) as cursor:
     return require_record(cursor.fetchone())
 
 @app.post("/records/validate", response_model=RecordCreate)
-async def validate_record(record: RecordCreate):
+def validate_record(record: RecordCreate):
     return record
 
 @app.patch("/records/{record_id}", response_model=RecordResponse)
-async def update_record(record_id: int, record: RecordUpdate, db: Database):
+def update_record(record_id: int, record: RecordUpdate, db: Database):
   changes = record.model_dump(exclude_unset=True)
   if not changes or any(value is None for value in changes.values()):
     raise HTTPException(status_code=422, detail="至少提供一个字段，字段值不能为 null")
@@ -87,7 +87,7 @@ async def update_record(record_id: int, record: RecordUpdate, db: Database):
     return require_record(cursor.fetchone())
 
 @app.delete("/records/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_record(record_id: int, db: Database):
+def delete_record(record_id: int, db: Database):
   with db, closing[Cursor](db.execute("DELETE FROM records WHERE id = ?", (record_id,))) as cursor:
     if cursor.rowcount == 0:
       raise HTTPException(status_code=404, detail="Record not found")
